@@ -58,18 +58,15 @@ void main()
 
 	//3) Подключаемся к Серверу:
 	iResult = connect(connect_socket, target->ai_addr, target->ai_addrlen);
-	if (iResult == SOCKET_ERROR)
-	{
-		closesocket(connect_socket);
-		connect_socket = INVALID_SOCKET;
-	}
-	freeaddrinfo(target);
 	if (connect_socket == INVALID_SOCKET)
 	{
 		cout << "Unable to connect to Server. Error: " << WSAGetLastError() << endl;
+		closesocket(connect_socket);
+		freeaddrinfo(target);
 		WSACleanup();
 		return;
 	}
+	freeaddrinfo(target);
 
 	//4) Отправка данных на Сервер:
 	CHAR send_buffer[MTU] = "Привет Сервер!";
