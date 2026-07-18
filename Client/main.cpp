@@ -2,13 +2,17 @@
 #include<WinSock2.h>
 #include<WS2tcpip.h>
 #include<iphlpapi.h>
+
 //#include<system_error>
 //#include<string>
+
+#include<FormatLastError.h>
 
 // LINK2019 (LNK - Linker, Компоновщик) возникает в том случае, когда компоновщик видит прототип функции (SYMBOL), НО НЕ может сопоставить с ним реализацию функции.
 // Это может бытьь из-за того, что список принимаемых параметров в прототипе и реализации отличается либо же реализация вообще нет.
 // WS2_32.lib
 #pragma comment(lib, "WS2_32.lib")
+#pragma comment(lib, "FormatLastError.lib")
 
 using std::cin;
 using std::cout;
@@ -16,24 +20,7 @@ using std::endl;
 
 #define MTU		1500 //Maximum Transfer Unit - максимальный блок данныхб который можно передать по сети для сетей семейства Ethernet MTU составляет 1500 Byte
 
-CHAR* FormatLastError(DWORD dwError, CHAR szError[])
-{
-	ZeroMemory(szError, strlen(szError));
-	LPSTR lpError = NULL;
-	FormatMessage
-	(
-		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL,
-		dwError,
-		MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
-		(LPSTR)&lpError,
-		256,
-		NULL
-	);
-	//strcpy(szError, lpError);
-	sprintf(szError, "Error# %i: %s", dwError, lpError);
-	return szError;
-}
+
 
 void main()
 {
