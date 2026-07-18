@@ -75,9 +75,8 @@ void main()
 	iResult = send(connect_socket, send_buffer, strlen(send_buffer), 0);
 	if (iResult == SOCKET_ERROR)
 	{
-		int errorCode = WSAGetLastError();
-		std::string errorMessage = std::system_category().message(errorCode);
-		cout << "Send failed with error: " << errorMessage << " Code: " << errorCode << endl;
+		std::string errorMessage = std::system_category().message(WSAGetLastError());
+		cout << "Send failed with error: " << errorMessage << " Code: " << WSAGetLastError() << endl;
 		closesocket(connect_socket);
 		WSACleanup();
 		return;
