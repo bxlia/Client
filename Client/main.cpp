@@ -2,6 +2,8 @@
 #include<WinSock2.h>
 #include<WS2tcpip.h>
 #include<iphlpapi.h>
+#include<system_error>
+#include<string>
 
 // LINK2019 (LNK - Linker, Компоновщик) возникает в том случае, когда компоновщик видит прототип функции (SYMBOL), НО НЕ может сопоставить с ним реализацию функции.
 // Это может бытьь из-за того, что список принимаемых параметров в прототипе и реализации отличается либо же реализация вообще нет.
@@ -73,7 +75,9 @@ void main()
 	iResult = send(connect_socket, send_buffer, strlen(send_buffer), 0);
 	if (iResult == SOCKET_ERROR)
 	{
-		cout << "Send failed with error: " << WSAGetLastError() << endl;
+		int errorCode = WSAGetLastError();
+		std::string errorMessage = std::system_category().message(errorCode);
+		cout << "Send failed with error: " << errorMessage << " Code: " << errorCode << endl;
 		closesocket(connect_socket);
 		WSACleanup();
 		return;
