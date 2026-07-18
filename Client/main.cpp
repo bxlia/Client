@@ -2,8 +2,8 @@
 #include<WinSock2.h>
 #include<WS2tcpip.h>
 #include<iphlpapi.h>
-#include<system_error>
-#include<string>
+//#include<system_error>
+//#include<string>
 
 // LINK2019 (LNK - Linker, Компоновщик) возникает в том случае, когда компоновщик видит прототип функции (SYMBOL), НО НЕ может сопоставить с ним реализацию функции.
 // Это может бытьь из-за того, что список принимаемых параметров в прототипе и реализации отличается либо же реализация вообще нет.
@@ -16,12 +16,33 @@ using std::endl;
 
 #define MTU		1500 //Maximum Transfer Unit - максимальный блок данныхб который можно передать по сети для сетей семейства Ethernet MTU составляет 1500 Byte
 
+CHAR* FormatLastError(DWORD dwError, CHAR szError[])
+{
+	ZeroMemory(szError, strlen(szError));
+	LPSTR lpError = NULL;
+	FormatMessage
+	(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL,
+		dwError,
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL),
+		(LPSTR)&lpError,
+		256,
+		NULL
+	);
+	//strcpy(szError, lpError);
+	sprintf(szError, "Error# %i: %s", dwError, lpError);
+	return szError;
+}
+
 void main()
 {
 	setlocale(LC_ALL, "");
 
 	INT iResult; //эта переменная будет хранить результаты работы функций
 	//0) Инициализация WinSock
+	DWORD dwError;
+	CHAR szError[256] = {};
 	WSADATA wsaData;
 	iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (iResult)
@@ -50,8 +71,10 @@ void main()
 
 	//2) Создаем сокет, при помощи которого бдуем подключаться к Серверу:
 	SOCKET connect_socket = socket(target->ai_family, target->ai_socktype, target->ai_protocol);
+	dwError = WSAGetLastError();
 	if (connect_socket == INVALID_SOCKET)
 	{
+		cout << FormatLastError(dwError, szError) << endl;
 		cout << "Socket creation failed with error " << WSAGetLastError() << endl;
 		freeaddrinfo(target); 
 		WSACleanup();
@@ -60,8 +83,10 @@ void main()
 
 	//3) Подключаемся к Серверу:
 	iResult = connect(connect_socket, target->ai_addr, target->ai_addrlen);
-	if (connect_socket == INVALID_SOCKET)
+	dwError = WSAGetLastError();
+	if (iResult)
 	{
+		DWORD dwError = WSAGetLastError();
 		cout << "Unable to connect to Server. Error: " << WSAGetLastError() << endl;
 		closesocket(connect_socket);
 		freeaddrinfo(target);
@@ -73,10 +98,13 @@ void main()
 	//4) Отправка данных на Сервер:
 	CHAR send_buffer[MTU] = "Привет Сервер!";
 	iResult = send(connect_socket, send_buffer, strlen(send_buffer), 0);
+	dwError = WSAGetLastError();
 	if (iResult == SOCKET_ERROR)
 	{
-		std::string errorMessage = std::system_category().message(WSAGetLastError());
-		cout << "Send failed with error: " << errorMessage << " Code: " << WSAGetLastError() << endl;
+		cout << FormatLastError(dwError, szError) << endl;
+		cout << "Send failed with error: " << endl;
+		//std::string errorMessage = std::system_category().message(WSAGetLastError());
+		//cout << "Send failed with error: " << errorMessage << " Code: " << WSAGetLastError() << endl;
 		closesocket(connect_socket);
 		WSACleanup();
 		return;
@@ -86,14 +114,16 @@ void main()
 	//5) Получение данных от Сервера:
 	CHAR recv_buffer[MTU] = {};
 	iResult = recv(connect_socket, recv_buffer, MTU, NULL);
+	dwError = WSAGetLastError();
 	if (iResult > 0)cout << iResult << "Byte received. Message: " << recv_buffer << endl;
 	else if (iResult == 0)cout << "Nothing received." << endl;
-	else cout << "Receive failed with error: " << WSAGetLastError() << endl;
+	else cout << "Receive failed with error: " << WSAGetLastError() << endl << FormatLastError(dwError, szError);
 
 	// Объект 'wsaData' занимает ресурсы памяти, поэтому, после того как WinSock больше не нужен, эти ресурсы нужно освободить: 
 	//6) Завершаем сеанс работы с Сервером и освобождаем ресурсы:
 	iResult = shutdown(connect_socket, SD_BOTH); // Закрываем соединение с Сервером в обоих направлениях
-	if (iResult == SOCKET_ERROR)cout << "Shutdown failed with error: " << WSAGetLastError() << endl;
+	dwError = WSAGetLastError();
+	if (iResult == SOCKET_ERROR)cout << "Shutdown failed with error: " << WSAGetLastError() << endl << FormatLastError(dwError, szError);
 	closesocket(connect_socket);
 	WSACleanup();
 }
