@@ -3,6 +3,7 @@
 #include<WS2tcpip.h>
 #include<iphlpapi.h>
 
+#include<FormatLastError.h>
 
 using std::cin;
 using std::cout;
@@ -10,6 +11,7 @@ using std::endl;
 
 #define MTU 1500 //Maximum Transfel Unit
 #pragma comment(lib, "WS2_32.lib")
+#pragma comment(lib, "FormatLastError.lib")
 
 void main()
 {
@@ -17,6 +19,8 @@ void main()
 	cout << "SERVER" << endl;
 
 	INT iResult = 0;
+	DWORD dwError = 0;
+	CHAR szError[256] = {};
 
 	//0) Инициализация WinSock:
 	WSADATA wsaData;
@@ -32,7 +36,7 @@ void main()
 	hints.ai_protocol = IPPROTO_TCP;
 	hints.ai_flags = AI_PASSIVE; // Соединение будет работать в режиме 'LISTENING'
 
-	iResult = getaddrinfo(NULL, "27015", &hints, &target); // NULL - '0.0.0.0'. Сервер будет прослушивать порт '27015' на всех доступных IP-адресах, на всех сетевых картах, установленных на ПК.
+	iResult = getaddrinfo(NULL, "445", &hints, &target); // NULL - '0.0.0.0'. Сервер будет прослушивать порт '27015' на всех доступных IP-адресах, на всех сетевых картах, установленных на ПК.
 	if (iResult) // '0' - это FALSE, TRUE - это все что НЕ '0'
 	{
 		cout << "getaddrinfo() failed with error: " << iResult << endl;
@@ -43,10 +47,12 @@ void main()
 
 	//2) Создаем SOCKET Сервера
 	SOCKET listen_socket = socket(target->ai_family, target->ai_socktype, target->ai_protocol);
+	dwError = WSAGetLastError();
 	if (listen_socket == INVALID_SOCKET)
 	{
 		cout << "LISTEN SOCKET creation failed with error: " << WSAGetLastError() << endl;
 		cout << "Создание функции LISTEN SOCKET завершилось с ошибкой: " << WSAGetLastError() << endl;
+		cout << FormatLastError(dwError, szError) << endl;
 		freeaddrinfo(target);
 		WSACleanup();
 		return;
@@ -54,10 +60,12 @@ void main()
 	
 	//3) BIND - привязываем серверный сокет к интерфейсу, который он будет слушать
 	iResult = bind(listen_socket, target->ai_addr, target->ai_addrlen);
+	dwError = WSAGetLastError();
 	if (iResult)
 	{
 		cout << "BIND failed with error: " << WSAGetLastError() << endl;
 		cout << "Привязка сокета к порту завершилась с ошибкой: " << WSAGetLastError() << endl;
+		cout << FormatLastError(dwError, szError) << endl;
 		closesocket(listen_socket);
 		freeaddrinfo(target);
 		WSACleanup();
@@ -67,6 +75,7 @@ void main()
 	//4) Запускаем прослушивание порта
 	if (listen(listen_socket, 1) == SOCKET_ERROR)
 	{
+		cout << FormatLastError(WSAGetLastError(), szError) << endl;
 		cout << "Listen failed with error: " << WSAGetLastError() << endl;
 		cout << "Прослушивать порт невозможно из-за ошибки: " << WSAGetLastError() << endl;
 		closesocket(listen_socket);
@@ -79,6 +88,7 @@ void main()
 	SOCKET client_socket = accept(listen_socket, NULL, NULL);
 	if (client_socket == INVALID_SOCKET)
 	{
+		cout << FormatLastError(WSAGetLastError(), szError) << endl;
 		cout << "Accept failed with error: " << WSAGetLastError() << endl;
 		cout << "Не удалось принять подключение от клиента: " << WSAGetLastError() << endl;
 		closesocket(listen_socket);
@@ -93,10 +103,15 @@ void main()
 	if (iResult > 0)
 	{
 		cout << iResult << " Bytes received. Message: " << recv_buffer << endl;
+
 	}
 	else if (iResult == 0) cout << "Nothing received, connection closing.\nНет данных от клиента, закрываем соединение" << endl;
-	else cout << "Receive failed with error: " << WSAGetLastError() << endl;
-	cout << "При получении данных возникла ошибка: " << WSAGetLastError() << endl;
+	else
+	{
+		cout << FormatLastError(WSAGetLastError(), szError) << endl;
+		cout << "Receive failed with error: " << WSAGetLastError() << endl;
+		cout << "При получении данных возникла ошибка: " << WSAGetLastError() << endl;
+	}
 	
 	//7) Отправка данных клиенту
 	CHAR send_buffer[MTU] = {};
@@ -104,6 +119,7 @@ void main()
 	iResult = send(client_socket, send_buffer, strlen(send_buffer), NULL);
 	if (iResult == SOCKET_ERROR)
 	{
+		cout << FormatLastError(WSAGetLastError(), szError) << endl;
 		cout << "send() failed with error: " << WSAGetLastError() << endl;
 		cout << "При отправке данныхх возникла ошибка: " << WSAGetLastError() << endl;
 	}
@@ -111,7 +127,10 @@ void main()
 	cin.get(); // Ожидает нажатие клавиши 'Enter'
 
 	//8) Закрываем соединение с клиентом
+	iResult = shutdown(client_socket, SD_BOTH);
+	if (iResult) cout << FormatLastError(WSAGetLastError(), szError) << WSAGetLastError() << endl;
 	if (iResult) cout << "shutdown failed with error: " << WSAGetLastError() << endl;
+
 
 	//9) Освободить ресурсы
 	closesocket(client_socket);
