@@ -125,6 +125,7 @@ void main()
 			cout << FormatLastError(WSAGetLastError(), szError) << endl;
 			cout << "Receive failed with error: " << WSAGetLastError() << endl;
 			cout << "При получении данных возникла ошибка: " << WSAGetLastError() << endl;
+			break;
 		}
 
 		//7) Отправка данных клиенту
@@ -141,8 +142,10 @@ void main()
 	//cin.get(); // Ожидает нажатие клавиши 'Enter'
 
 	//8) Закрываем соединение с клиентом
+	cout << "Press 'Enter' to close connection" << endl;
+	cin.get();
 	iResult = shutdown(client_socket, SD_BOTH);
-	if (iResult) cout << FormatLastError(WSAGetLastError(), szError) << WSAGetLastError() << endl;
+	if (iResult) cout << FormatLastError(WSAGetLastError(), szError) << endl;
 	if (iResult) cout << "shutdown failed with error: " << WSAGetLastError() << endl;
 
 
