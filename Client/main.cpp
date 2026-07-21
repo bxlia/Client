@@ -1,4 +1,5 @@
-﻿#include<iostream>
+﻿
+#include<iostream>
 #include<WinSock2.h>
 #include<WS2tcpip.h>
 #include<iphlpapi.h>
@@ -85,7 +86,9 @@ void main()
 
 	//4) Отправка данных на Сервер
 	CHAR send_buffer[MTU] = "Привет Сервер!";
-	iResult = send(connect_socket, send_buffer, strlen(send_buffer), 0);
+	do
+	{
+			iResult = send(connect_socket, send_buffer, strlen(send_buffer), 0);
 	dwError = WSAGetLastError();
 	if (iResult == SOCKET_ERROR)
 	{
@@ -108,8 +111,13 @@ void main()
 	else cout
 		<< "Receive failed with error: " << WSAGetLastError() << endl
 		<< FormatLastError(dwError, szError);
-
-	cin.get();
+	ZeroMemory(send_buffer, strlen(send_buffer));
+	cout << "Введите сообщение: "; 
+	//cin >> send_buffer;
+	SetConsoleCP(1251);
+	cin.getline(send_buffer, MTU);
+	SetConsoleCP(866);
+	} while (strcmp(send_buffer, "exit"));
 	//6) Завершаем сеанс работы с Сервером и освобождаем ресурсы
 	iResult = shutdown(connect_socket, SD_BOTH);	//закрываем соединение с Сервером в обоих направлениях
 	dwError = WSAGetLastError();
